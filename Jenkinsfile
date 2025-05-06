@@ -3,9 +3,10 @@ pipeline {
 
     environment {
         MVN_HOME = tool name: 'Maven_3.6.3', type: 'maven'
-        TOMCAT_URL = 'http://tomcat:8080/manager/text/deploy?path=/demo-podman&war=file:/path/to/your_app.war&update=true' // 替換為正確的檔案路徑
-        TOMCAT_USER = 'jenkins'
-        TOMCAT_PASS = 'yourpassword' // 替換為正確的密碼
+        // TOMCAT_URL 不需要 war 参数，只需指定 path 和 update=true
+        TOMCAT_URL = 'http://tomcat:8080/manager/text/deploy?path=/demo-podman&update=true'
+        TOMCAT_USER = 'jenkins'           // 请替换为你的Tomcat管理用户
+        TOMCAT_PASS = 'yourpassword'      // 请替换为对应密码
     }
 
     stages {
