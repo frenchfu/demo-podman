@@ -2,13 +2,10 @@ pipeline {
     agent any
 
     environment {
-        // 設定 Maven 路徑（如果有多個 Maven，請根據 Jenkins 安裝名稱調整）
         MVN_HOME = tool name: 'Maven_3.6.3', type: 'maven'
-        // Tomcat 伺服器資訊
-        TOMCAT_HOST = 'tomcat' // 這裡是主機名或IP，Jenkins要能連通
-        TOMCAT_USER = 'tomcat_user' // Tomcat 伺服器用戶
-        TOMCAT_PASS = 'tomcat_password' // 若用 scp 需設 SSH Key 或密碼
-        TOMCAT_WEBAPPS = '/opt/tomcat/webapps' // Tomcat webapps 目錄
+        TOMCAT_URL = 'http://tomcat:8080/manager/text/deploy?path=/demo-podman&update=true'
+        TOMCAT_USER = 'jenkins'
+        TOMCAT_PASS = 'yourpassword'
     }
 
     stages {
@@ -19,7 +16,7 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh "${MVN_HOME}/bin/mvn clean package -Dmaven.test.skip=true"
+                sh "${MVN_HOME}/bin/mvn clean package -Pprod -Dmaven.test.skip=true"
             }
         }
         stage('Rename WAR') {
@@ -27,14 +24,13 @@ pipeline {
                 sh 'mv target/demo-0.0.1-SNAPSHOT.war target/demo-podman.war'
             }
         }
-        stage('Deploy to Tomcat') {
+        stage('Deploy to Tomcat by HTTP') {
             steps {
-                // 這裡用 scp 複製 war 到 Tomcat，如果 Tomcat 跑在本機可直接 cp
                 sh """
-                scp target/demo-podman.war ${TOMCAT_USER}@${TOMCAT_HOST}:${TOMCAT_WEBAPPS}/
+                curl -u ${TOMCAT_USER}:${TOMCAT_PASS} \\
+                  --upload-file target/demo-podman.war \\
+                  '${TOMCAT_URL}'
                 """
-                // 如果 Tomcat 跑在Jenkins同一台主機，可用：
-                // sh 'cp target/demo-podman.war /opt/tomcat/webapps/'
             }
         }
     }
