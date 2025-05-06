@@ -16,7 +16,7 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh "${MVN_HOME}/bin/mvn clean package -Pprod -Dmaven.test.skip=true"
+                sh "${MVN_HOME}/bin/mvn clean package -Dmaven.test.skip=true"
             }
         }
         stage('Rename WAR') {
