@@ -32,7 +32,8 @@ pipeline {
                     // 1. 上傳 WAR 檔案，取得 content hash
                     def uploadResponse = sh(
                         script: """
-                        curl --digest -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/octet-stream" \\
+                        curl --digest -s -u ${WILDFLY_USER}:${WILDFLY_PASS} \\
+                             -H "Content-Type: application/octet-stream" \\
                              --data-binary @target/${APP_NAME} \\
                              http://${WILDFLY_HOST}:${WILDFLY_MANAGEMENT_PORT}/management/add-content
                         """,
