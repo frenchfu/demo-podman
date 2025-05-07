@@ -32,7 +32,7 @@ pipeline {
                     // 先上傳內容，取得 hash
                     def uploadResponse = sh(
                         script: """
-                        curl -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/octet-stream" \\
+                        curl --digest -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/octet-stream" \\
                              --data-binary @target/${APP_NAME} \\
                              http://${WILDFLY_HOST}:${WILDFLY_MANAGEMENT_PORT}/management/add-content
                         """,
@@ -41,13 +41,12 @@ pipeline {
 
                     echo "Upload response: ${uploadResponse}"
 
-                    // 從回傳中擷取 hash
                     def json = readJSON text: uploadResponse
                     def hash = json.result['BYTES_VALUE']
 
                     // 部署或更新應用
                     sh """
-                    curl -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/json" -d '
+                    curl --digest -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/json" -d '
                     {
                       "address": [{"deployment": "${APP_NAME}"}],
                       "operation": "add",
@@ -55,7 +54,7 @@ pipeline {
                       "enabled": true,
                       "runtime-name": "${APP_NAME}"
                     }' http://${WILDFLY_HOST}:${WILDFLY_MANAGEMENT_PORT}/management || \\
-                    curl -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/json" -d '
+                    curl --digest -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/json" -d '
                     {
                       "address": [{"deployment": "${APP_NAME}"}],
                       "operation": "redeploy"
