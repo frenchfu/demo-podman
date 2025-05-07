@@ -5,8 +5,8 @@ pipeline {
         MVN_HOME = tool name: 'Maven_3.6.3', type: 'maven'
         WILDFLY_HOST = 'wildfly'               // Podman 網路中 WildFly 容器名稱或域名
         WILDFLY_MANAGEMENT_PORT = '9990'       // WildFly 管理介面預設埠
-        WILDFLY_USER = 'admin'                  // WildFly 管理用戶名，請替換成你的
-        WILDFLY_PASS = 'yourpassword'           // WildFly 管理密碼，請替換成你的
+        WILDFLY_USER = 'jenkins'                  // WildFly 管理用戶名，請替換成你的
+        WILDFLY_PASS = 'jenkins'           // WildFly 管理密碼，請替換成你的
         APP_NAME = 'demo-podman.war'            // 部署的 WAR 名稱
     }
 
