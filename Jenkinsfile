@@ -3,10 +3,11 @@ pipeline {
 
     environment {
         MVN_HOME = tool name: 'Maven_3.6.3', type: 'maven'
-        // TOMCAT_URL 不需要 war 参数，只需指定 path 和 update=true
-        TOMCAT_URL = 'http://tomcat:8080/manager/text/deploy?path=/demo-podman&update=true'
-        TOMCAT_USER = 'jenkins'           // 请替换为你的Tomcat管理用户
-        TOMCAT_PASS = 'yourpassword'      // 请替换为对应密码
+        WILDFLY_HOST = 'wildfly'               // Podman 網路中 WildFly 容器名稱或域名
+        WILDFLY_MANAGEMENT_PORT = '9990'       // WildFly 管理介面預設埠
+        WILDFLY_USER = 'admin'                  // WildFly 管理用戶名，請替換成你的
+        WILDFLY_PASS = 'yourpassword'           // WildFly 管理密碼，請替換成你的
+        APP_NAME = 'demo-podman.war'            // 部署的 WAR 名稱
     }
 
     stages {
@@ -25,13 +26,42 @@ pipeline {
                 sh 'mv target/demo-0.0.1-SNAPSHOT.war target/demo-podman.war'
             }
         }
-        stage('Deploy to Tomcat by HTTP') {
+        stage('Deploy to WildFly') {
             steps {
-                sh """
-                curl -u ${TOMCAT_USER}:${TOMCAT_PASS} \\
-                  --upload-file target/demo-podman.war \\
-                  '${TOMCAT_URL}'
-                """
+                script {
+                    // 先上傳內容，取得 hash
+                    def uploadResponse = sh(
+                        script: """
+                        curl -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/octet-stream" \\
+                             --data-binary @target/${APP_NAME} \\
+                             http://${WILDFLY_HOST}:${WILDFLY_MANAGEMENT_PORT}/management/add-content
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Upload response: ${uploadResponse}"
+
+                    // 從回傳中擷取 hash
+                    def json = readJSON text: uploadResponse
+                    def hash = json.result['BYTES_VALUE']
+
+                    // 部署或更新應用
+                    sh """
+                    curl -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/json" -d '
+                    {
+                      "address": [{"deployment": "${APP_NAME}"}],
+                      "operation": "add",
+                      "content": [{"hash": ${hash}}],
+                      "enabled": true,
+                      "runtime-name": "${APP_NAME}"
+                    }' http://${WILDFLY_HOST}:${WILDFLY_MANAGEMENT_PORT}/management || \\
+                    curl -s -u ${WILDFLY_USER}:${WILDFLY_PASS} -H "Content-Type: application/json" -d '
+                    {
+                      "address": [{"deployment": "${APP_NAME}"}],
+                      "operation": "redeploy"
+                    }' http://${WILDFLY_HOST}:${WILDFLY_MANAGEMENT_PORT}/management
+                    """
+                }
             }
         }
     }
