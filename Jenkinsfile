@@ -13,7 +13,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/frenchfu/demo-podman.git', branch: 'main'
+                git url: 'https://github.com/frenchfu/demo-podman.git', branch: 'main_for_jboss'
             }
         }
         stage('Build') {
