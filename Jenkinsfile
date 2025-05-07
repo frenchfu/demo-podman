@@ -3,11 +3,11 @@ pipeline {
 
     environment {
         MVN_HOME = tool name: 'Maven_3.6.3', type: 'maven'
-        WILDFLY_HOST = 'wildfly'               // Podman 網路中 WildFly 容器名稱或域名
-        WILDFLY_MANAGEMENT_PORT = '9990'       // WildFly 管理介面預設埠
-        WILDFLY_USER = 'jenkins'                  // WildFly 管理用戶名，請替換成你的
-        WILDFLY_PASS = '1qaz@WSX3edc'           // WildFly 管理密碼，請替換成你的
-        APP_NAME = 'demo-podman.war'            // 部署的 WAR 名稱
+        WILDFLY_HOST = 'wildfly'
+        WILDFLY_MANAGEMENT_PORT = '9990'
+        WILDFLY_USER = 'jenkins'
+        WILDFLY_PASS = '1qaz@WSX3edc'
+        APP_NAME = 'demo-podman.war'
     }
 
     stages {
@@ -29,12 +29,11 @@ pipeline {
         stage('Deploy to WildFly') {
             steps {
                 script {
-                    // 1. 上傳 WAR 檔案，取得 content hash
+                    // 1. 上傳 WAR 檔案，取得 BYTES_VALUE
                     def uploadResponse = sh(
                         script: """
                         curl --digest -s -u ${WILDFLY_USER}:${WILDFLY_PASS} \\
-                             -H "Content-Type: application/octet-stream" \\
-                             --data-binary @target/${APP_NAME} \\
+                             --form file=@target/${APP_NAME} \\
                              http://${WILDFLY_HOST}:${WILDFLY_MANAGEMENT_PORT}/management/add-content
                         """,
                         returnStdout: true
@@ -45,17 +44,14 @@ pipeline {
                     def json = readJSON text: uploadResponse
                     def hash = json.result['BYTES_VALUE']
 
-                    // hash 是陣列格式，需轉成字串陣列格式 JSON 才能用
-                    def hashJson = groovy.json.JsonOutput.toJson(hash)
-
-                    echo "Content hash: ${hashJson}"
+                    echo "Content hash: ${hash}"
 
                     // 2. 嘗試新增部署（add operation）
                     def addDeployPayload = """
                     {
                       "address": [{"deployment": "${APP_NAME}"}],
                       "operation": "add",
-                      "content": [{"hash": ${hashJson}}],
+                      "content": [{"hash": {"BYTES_VALUE": "${hash}"}}],
                       "enabled": true,
                       "runtime-name": "${APP_NAME}"
                     }
